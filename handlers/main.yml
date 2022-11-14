@@ -1,0 +1,8 @@
+---
+
+- name: Restart wikijs
+  systemd:
+    name: wikijs
+    daemon-reload: yes
+    state: restarted
+

@@ -1,0 +1,8 @@
+---
+
+dependencies:
+
+- role: apache-vhost
+  server_name: "{{ wikijs_domain }}"
+  letsencrypt: true
+  force_ssl: true

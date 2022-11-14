@@ -1,0 +1,87 @@
+---
+- name: Install node.js (needed for wiki.js)
+  apt: name=nodejs
+
+- name: Create user wikijs
+  user:
+    name: wikijs
+    system: yes
+    home: /var/opt/wikijs
+    createhome: no
+    shell: /bin/bash
+
+- name: Create /opt/wikijs
+  file: path=/opt/wikijs state=directory
+
+- name: Check wikijs version
+  command: grep -Fq "{{ wikijs_version }}" /opt/wikijs/package.json
+  register: wikijs_is_up_to_date
+  check_mode: no
+  ignore_errors: yes
+  changed_when: no
+
+- name: Uncompress wiki.js
+  unarchive:
+    src: https://github.com/Requarks/wiki/releases/download/v{{ wikijs_version }}/wiki-js.tar.gz
+    dest: /opt/wikijs
+    remote_src: yes
+    owner: root
+    group: root
+  when: wikijs_is_up_to_date.rc != 0
+  notify: Restart wikijs
+
+- name: Make package.json readable by wikijs user
+  file:
+    path: /opt/wikijs/package.json
+    mode: 0644
+
+- name: Create /etc/opt/wikijs
+  file: path=/etc/opt/wikijs state=directory
+
+- name: Create /var/cache/wikijs
+  file:
+    path: /var/cache/wikijs
+    state: directory
+    owner: wikijs
+    group: wikijs
+
+- name: Wiki.js configuration file
+  template:
+    src: config.yml
+    dest: /etc/opt/wikijs/config.yml
+
+- name: Link to wiki.js configuration file
+  file:
+    state: link
+    src: /etc/opt/wikijs/config.yml
+    dest: /opt/wikijs/config.yml
+
+- name: Create wikijs PostgreSQL user
+  postgresql_user:
+    login_host: localhost
+    login_user: postgres
+    login_password: "{{ postgres_password }}"
+    name: wikijs
+    password: "{{ wikijs_password }}"
+
+- name: Create wikijs database
+  postgresql_db:
+    name: wikijs
+    owner: wikijs
+  become: yes
+  become_user: postgres
+
+- name: Create wikijs service
+  copy:
+    src: wikijs.systemd
+    dest: /etc/systemd/system/wikijs.service
+
+- name: Enable wikijs service
+  systemd: name=wikijs enabled=yes state=started
+
+- name: Apache wikijs configuration
+  copy:
+    src: apache-wikijs.conf
+    dest: /etc/apache2/snippets/{{ wikijs_domain }}/main.conf
+  notify:
+  - Restart apache

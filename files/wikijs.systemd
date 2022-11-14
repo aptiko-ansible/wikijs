@@ -1,0 +1,12 @@
+[Unit]
+Description=Wiki.js server
+
+[Service]
+User=wikijs
+Group=wikijs
+WorkingDirectory=/opt/wikijs
+Environment="NODE_ENV=production"
+ExecStart=/usr/bin/node server
+
+[Install]
+WantedBy=multi-user.target
