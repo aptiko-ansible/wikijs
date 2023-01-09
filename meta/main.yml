@@ -6,3 +6,4 @@ dependencies:
   server_name: "{{ wikijs_domain }}"
   letsencrypt: true
   force_ssl: true
+  use_awstats: false
